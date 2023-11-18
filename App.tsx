@@ -1,6 +1,7 @@
-import { StatusBar, Text, View } from 'react-native';
+import { StatusBar } from 'react-native';
 import { useFonts, Roboto_400Regular, Roboto_700Bold } from '@expo-google-fonts/roboto';
 import { NativeBaseProvider, Spinner } from 'native-base';
+import { Signin } from '@screens/Signin';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -12,11 +13,11 @@ export default function App() {
     <NativeBaseProvider>
       <StatusBar
         barStyle='light-content'
-        backgroundColor='transparend'
+        backgroundColor='transparent'
         translucent
       />
 
-      { fontsLoaded ? <Text>Hello World</Text> : <Spinner /> }
+      { fontsLoaded ? <Signin /> : <Spinner /> }
     </NativeBaseProvider>
   );
 }
