@@ -2,20 +2,57 @@ import { Button } from "@components/Button";
 import { Header } from "@components/Header";
 import { Input } from "@components/Input";
 import { UserPhoto } from "@components/UserPhoto";
-import { Center, Heading, ScrollView, Skeleton, Text, VStack } from "native-base";
-import { useEffect, useState } from "react";
+import { Center, Heading, Icon, ScrollView, Skeleton, Text, VStack, useToast } from "native-base";
+import { useState } from "react";
 import { TouchableOpacity } from "react-native";
+import { MaterialIcons } from '@expo/vector-icons'
+import * as ImagePicker from 'expo-image-picker'
+import * as FileSystem from 'expo-file-system'
 
 const PHOTO_SIZE = 32
 
 export function Profile () {
-  const [photoIsLoading, setPhotoIsLoading] = useState(true)
 
-  useEffect(() => {
-    setTimeout(() => {
+  const [photoIsLoading, setPhotoIsLoading] = useState(false)
+  const [userPhoto, selectUserPhoto] = useState('')
+
+  const toast = useToast()
+
+  async function handleSelectImage () {
+    setPhotoIsLoading(true)
+  
+    try {
+      const selectedImage = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        aspect: [4, 4],
+        allowsEditing: true
+      })
+  
+      if (selectedImage.canceled) {
+        return
+      }
+  
+      if (selectedImage.assets?.[0]?.uri) {
+        const photoInfo = await FileSystem.getInfoAsync(selectedImage.assets[0].uri, { size: true }) as any
+
+        if (photoInfo?.size && (photoInfo.size / 1024 / 1024) > 3 ) {
+          return toast.show({
+            title: "'Imagem muito grande. Por favor, escolha uma de até 3MB'",
+            placement: 'top',
+            bgColor: "red.500"
+          })
+        }
+
+        selectUserPhoto(selectedImage.assets[0].uri)
+      }
+      
+    } catch (error) {
+      console.error
+    } finally {
       setPhotoIsLoading(false)
-    }, 3000)
-  }, [])
+    }
+  }
 
   return (
     <VStack flex={1}>
@@ -32,15 +69,25 @@ export function Profile () {
                 endColor="gray.400" 
               />
             ) : (
-              <UserPhoto
-                source={{ uri: 'https://github.com/jeffmant.png' }}
-                alt="Foto do usuário"
-                size={PHOTO_SIZE}
-              />
+                userPhoto ? (
+                  <UserPhoto
+                    source={{ uri: userPhoto }}
+                    alt="Foto do usuário"
+                    size={PHOTO_SIZE}
+                  />
+                ) : (
+                  <Icon 
+                    as={MaterialIcons}
+                    size={PHOTO_SIZE}
+                    name="person" 
+                    rounded="full" 
+                    bgColor="gray.600"
+                  />
+                )
             )
           }
 
-          <TouchableOpacity>
+          <TouchableOpacity onPress={handleSelectImage}>
             <Text 
               color="green.500" 
               fontWeight="bold" 
