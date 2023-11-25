@@ -4,7 +4,6 @@ import { HomeHeader } from "@components/HomeHeader";
 import { useNavigation } from "@react-navigation/native";
 import { AppRoutesNavigatiorProps } from "@routes/app.routes";
 import { VStack, Text, HStack, FlatList, Heading } from "native-base";
-import { ItemClick } from "native-base/lib/typescript/components/composites/Typeahead/useTypeahead/types";
 import { useState } from "react";
 
 export function Home () {

@@ -8,10 +8,14 @@ import { TouchableOpacity } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system'
+import { useAuth } from "@hooks/useAuth";
+
+import userPhotoDefault from '@assets/userPhotoDefault.png'
 
 const PHOTO_SIZE = 32
 
 export function Profile () {
+  const { user } = useAuth()
 
   const [photoIsLoading, setPhotoIsLoading] = useState(false)
   const [userPhoto, selectUserPhoto] = useState('')
@@ -69,21 +73,11 @@ export function Profile () {
                 endColor="gray.400" 
               />
             ) : (
-                userPhoto ? (
-                  <UserPhoto
-                    source={{ uri: userPhoto }}
-                    alt="Foto do usuário"
-                    size={PHOTO_SIZE}
-                  />
-                ) : (
-                  <Icon 
-                    as={MaterialIcons}
-                    size={PHOTO_SIZE}
-                    name="person" 
-                    rounded="full" 
-                    bgColor="gray.600"
-                  />
-                )
+              <UserPhoto
+                source={user.avatar ? { uri: user.avatar } : userPhotoDefault}
+                alt="Foto do usuário"
+                size={PHOTO_SIZE}
+              />
             )
           }
 
