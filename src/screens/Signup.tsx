@@ -1,4 +1,4 @@
-import { Center, Image, Text, VStack, Heading, ScrollView } from "native-base";
+import { Center, Image, Text, VStack, Heading, ScrollView, useToast } from "native-base";
 import LogoSvg from '@assets/logo.svg'
 import BackgroundImage from '@assets/background.png'
 import { Input } from "@components/Input";
@@ -6,39 +6,56 @@ import { Button } from "@components/Button";
 import { useNavigation } from "@react-navigation/native";
 import { useForm, Controller } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
-import * as Yup from 'yup'
-
-type FormDataProps = {
-  name: string
-  email: string
-  password: string
-  confirmPassword: string
-}
-
-const signupSchema = Yup.object({
-  name: Yup.string().required('Informe o nome'),
-  email: Yup.string().required('Informe o email').email('E-mail inválido'),
-  password: Yup.string().required('Informe a senha').min(6, 'A senha deve ter pelo menos 6 dígitos'),
-  confirmPassword: Yup.string().required('Confirme a senha').oneOf([Yup.ref('password'), ''], 'As senhas devem ser iguais'),
-})
+import { useState } from "react";
+import { api } from "@services/api";
+import { AppError } from "@utils/app.error";
+import { SignupDTO } from "@dtos/signup.dto";
+import { signupSchema } from "@utils/validations/signup.schema";
+import { useAuth } from "@hooks/useAuth";
 
 export function Signup () {
   const { goBack } = useNavigation()
-  const { control, handleSubmit, formState: { errors } } = useForm<FormDataProps>({
+  const { control, handleSubmit, formState: { errors, isValid } } = useForm<SignupDTO>({
     resolver: yupResolver(signupSchema)
   })
+
+  const { signin } = useAuth()
+
+  const toast = useToast()
+
+  const [isLoading, setIsLoading] = useState(false)
 
   function handleGoBack () {
     goBack()
   }
 
-  function handleSignup ({ 
+  async function handleSignup ({ 
     name, 
     email, 
     password, 
-    confirmPassword 
-  }: FormDataProps) {
-    console.log({ name, email, password, confirmPassword })
+  }: SignupDTO) {
+    setIsLoading(true)
+
+    try {
+      await api.post('/users', {
+        name,
+        email,
+        password
+      })
+
+      await signin(email, password)
+      
+    } catch (error) {
+      const isAppError = error instanceof AppError
+      const errorMessage = isAppError ? error.message : 'Não foi possível cadastrar.'
+      toast.show({ 
+        placement: 'top',
+        bgColor: "red.500", 
+        title: errorMessage
+      })
+      setIsLoading(false)
+    }
+    
   }
 
   return (
@@ -86,7 +103,7 @@ export function Signup () {
                 placeholder="Nome"
                 value={value}
                 onChangeText={onChange}
-                errorMessage={errors.name?.message}
+                errorMessage={errors.name?.message as string}
               />
             )}
           />
@@ -101,7 +118,7 @@ export function Signup () {
                 autoCapitalize="none"
                 value={value}
                 onChangeText={onChange}
-                errorMessage={errors.email?.message}
+                errorMessage={errors.email?.message as string}
               />
             )} 
           />
@@ -115,7 +132,7 @@ export function Signup () {
                 secureTextEntry
                 value={value}
                 onChangeText={onChange}
-                errorMessage={errors.password?.message}
+                errorMessage={errors.password?.message as string}
               />
             )} 
           />
@@ -129,14 +146,19 @@ export function Signup () {
                 secureTextEntry
                 value={value}
                 onChangeText={onChange}
-                errorMessage={errors.confirmPassword?.message}
+                errorMessage={errors.confirmPassword?.message as string}
                 onSubmitEditing={handleSubmit(handleSignup)}
                 returnKeyType="send"
               />
             )} 
           />
 
-          <Button title="Criar e acessar" onPress={handleSubmit(handleSignup)} />
+          <Button 
+            title="Criar e acessar" 
+            onPress={handleSubmit(handleSignup)}
+            disabled={isLoading || !isValid}
+            isLoading={isLoading}
+          />
         </Center>
 
         <Button 
