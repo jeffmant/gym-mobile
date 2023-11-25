@@ -25,6 +25,7 @@ export function ExerciseCard ({ ...rest }: ExerciseCardProps) {
           <Heading
             color="white"
             fontSize="lg"
+            fontFamily="heading"
           >
             Remada Unilateral
           </Heading>
