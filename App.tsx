@@ -2,6 +2,7 @@ import { StatusBar } from 'react-native';
 import { useFonts, Roboto_400Regular, Roboto_700Bold } from '@expo-google-fonts/roboto';
 import { NativeBaseProvider, Spinner } from 'native-base';
 import { Routes } from '@routes/index';
+import { AuthContextProvider } from '@contexts/auth.context';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -16,8 +17,9 @@ export default function App() {
         backgroundColor='transparent'
         translucent
       />
-
-      { fontsLoaded ? <Routes /> : <Spinner /> }
+      <AuthContextProvider>
+        { fontsLoaded ? <Routes /> : <Spinner /> }
+      </AuthContextProvider>
     </NativeBaseProvider>
   );
 }
