@@ -23,9 +23,9 @@ export function AuthContextProvider ({ children }: { children: ReactNode }) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`
   }
 
-  async function saveUserAndToken(userData: UserDTO, token: string) {
+  async function saveUserAndToken(userData: UserDTO, token: string, refreshToken: string) {
     await saveUser(userData)
-    await saveToken(token)  
+    await saveToken({ token, refreshToken })  
   }
  
   async function signin(email: string, password: string) {
@@ -33,8 +33,8 @@ export function AuthContextProvider ({ children }: { children: ReactNode }) {
     try {
       const { data } = await api.post('/sessions', { email, password })
 
-      if  (data.user && data.token) {
-        await saveUserAndToken(data.user, data.token)
+      if  (data.user && data.token && data.refresh_token) {
+        await saveUserAndToken(data.user, data.token, data.refresh_token)
         updateUserAndToken(data.user, data.token)
       }
     } catch (error) {
@@ -71,7 +71,7 @@ export function AuthContextProvider ({ children }: { children: ReactNode }) {
     setIsLoadingUserData(true)
     try {
       const loggedUser = await getUser()
-      const token = await getToken()
+      const { token } = await getToken()
   
       if (loggedUser && token) {
         setUser(loggedUser)
@@ -88,6 +88,14 @@ export function AuthContextProvider ({ children }: { children: ReactNode }) {
   useEffect(() => {
     loadUserData()
   }, [])
+
+  useEffect(() => {
+    const subscribe = api.registerInterceptTokenManager(signout)
+
+    return () => {
+      subscribe()
+    }
+  }, [signout])
 
   return (
     <AuthContext.Provider value={{ user, signin, signout, updateUserProfile, isLoadingUserData }}>
