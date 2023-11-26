@@ -63,11 +63,42 @@ export function Profile () {
           })
         }
 
-        selectUserPhoto(selectedImage.assets[0].uri)
+        const fileExtension = selectedImage.assets?.[0]?.uri.split('.').pop()
+
+        const imageFile = {
+          name: `${user.name}.${fileExtension}`.toLowerCase(),
+          uri: selectedImage.assets?.[0]?.uri,
+          type: `${selectedImage.assets?.[0]?.type}/${fileExtension}`
+        } as any
+
+        const uploadForm = new FormData()
+        uploadForm.append('avatar', imageFile)
+
+        const { data } = await api.patch('/users/avatar', uploadForm, {
+          headers: {
+            "Content-Type": 'multipart/form-data'
+          }
+        })
+
+        const updatedUser = user
+        updatedUser.avatar = data.avatar
+
+        await updateUserProfile(updatedUser)
+
+        toast.show({
+          title: 'Foto atualizada com sucesso!',
+          placement: 'top',
+          color: 'red.500'
+        })
       }
-      
     } catch (error) {
-      console.error
+      const isAppError = error instanceof AppError
+      const errorMessage = isAppError ? error.message : 'Não foi possível atulizar a imagem'
+      toast.show({
+        title: errorMessage,
+        placement: 'top',
+        color: 'red.500'
+      })
     } finally {
       setPhotoIsLoading(false)
     }
@@ -119,7 +150,11 @@ export function Profile () {
               />
             ) : (
               <UserPhoto
-                source={user.avatar ? { uri: user.avatar } : userPhotoDefault}
+                source={
+                  user.avatar ? 
+                  { uri: `${api.defaults.baseURL}/avatar/${user.avatar}` } : 
+                  userPhotoDefault
+                }
                 alt="Foto do usuário"
                 size={PHOTO_SIZE}
               />
