@@ -2,25 +2,40 @@ import { Button } from "@components/Button";
 import { Header } from "@components/Header";
 import { Input } from "@components/Input";
 import { UserPhoto } from "@components/UserPhoto";
-import { Center, Heading, Icon, ScrollView, Skeleton, Text, VStack, useToast } from "native-base";
+import { Center, Heading, ScrollView, Skeleton, Text, VStack, useToast } from "native-base";
 import { useState } from "react";
+import { useAuth } from "@hooks/useAuth";
 import { TouchableOpacity } from "react-native";
-import { MaterialIcons } from '@expo/vector-icons'
 import * as ImagePicker from 'expo-image-picker'
 import * as FileSystem from 'expo-file-system'
-import { useAuth } from "@hooks/useAuth";
+
+import * as Yup from 'yup'
 
 import userPhotoDefault from '@assets/userPhotoDefault.png'
+import { Controller, Resolver, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { AppError } from "@utils/app.error";
+import { api } from "@services/api";
+import { profileSchema } from "@utils/validations/profile.schema";
+import { ProfileDTO } from "@dtos/profile.dto";
 
 const PHOTO_SIZE = 32
 
 export function Profile () {
-  const { user } = useAuth()
+  const { user, updateUserProfile } = useAuth()
 
   const [photoIsLoading, setPhotoIsLoading] = useState(false)
   const [userPhoto, selectUserPhoto] = useState('')
-
+  const [isLoading, setIsLoading] = useState(false)
+ 
   const toast = useToast()
+  const { control, handleSubmit, formState: { errors } } = useForm<ProfileDTO>({
+    defaultValues: {
+      name: user.name,
+      email: user.email
+    },
+    resolver: yupResolver(profileSchema) as unknown as Resolver<ProfileDTO, any>
+  })
 
   async function handleSelectImage () {
     setPhotoIsLoading(true)
@@ -55,6 +70,36 @@ export function Profile () {
       console.error
     } finally {
       setPhotoIsLoading(false)
+    }
+  }
+
+  async function handleProfileUpdate (data: ProfileDTO) {
+    setIsLoading(true)
+    try {
+
+      const updatedUser = user;
+      updatedUser.name = data.name
+
+      await api.put('/users', data)
+
+      await updateUserProfile(updatedUser)
+
+      toast.show({
+        title: 'Perfil atualizado com sucesso',
+        placement: 'top',
+        color: 'green.500'
+      })
+      
+    } catch (error) {
+      const isAppError = error instanceof AppError
+      const errorMessage = isAppError ? error.message : 'Não foi possível atualizar o perfil'
+      toast.show({
+        title: errorMessage,
+        placement: 'top',
+        color: 'red.500'
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -93,39 +138,86 @@ export function Profile () {
             </Text>
           </TouchableOpacity>
 
-          <Input
-            bg="gray.600"
-            placeholder="Nome"
+          <Controller 
+            control={control}
+            name="name"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Nome"
+                value={value}
+                onChangeText={onChange}
+                errorMessage={errors.name?.message}
+              />  
+            )}
           />
-          <Input
-            bg="gray.600"
-            placeholder="Email"
-            isDisabled
+
+          <Controller 
+            control={control}
+            name="email"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Email"
+                isDisabled
+                value={value}
+                onChangeText={onChange}
+              />  
+            )}
           />
 
           <Heading color="gray.200" fontSize="md" mb={2} mt={4} alignSelf="flex-start" fontFamily="heading">
             Alterar senha
           </Heading>
 
-          <Input 
-            bg="gray.600"
-            placeholder="Senha antiga"
-            secureTextEntry
+          <Controller 
+            control={control}
+            name="oldPassword"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Senha antiga"
+                secureTextEntry
+                value={value}
+                onChangeText={onChange}
+              />  
+            )}
           />
-          <Input 
-            bg="gray.600"
-            placeholder="Nova senha"
-            secureTextEntry
+
+          <Controller 
+            control={control}
+            name="password"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Nova senha"
+                secureTextEntry
+                value={value}
+                onChangeText={onChange}
+                errorMessage={errors.password?.message}
+              />  
+            )}
           />
-          <Input 
-            bg="gray.600"
-            placeholder="Confirme nova senha"
-            secureTextEntry
+          <Controller 
+            control={control}
+            name="confirmPassword"
+            render={({ field: { value, onChange } }) => (
+              <Input
+                bg="gray.600"
+                placeholder="Confirme nova senha"
+                secureTextEntry
+                value={value}
+                onChangeText={onChange}
+                errorMessage={errors.confirmPassword?.message}
+              />  
+            )}
           />
 
           <Button 
             title="Atualizar"
             mt={4}
+            onPress={handleSubmit(handleProfileUpdate)}
+            isLoading={isLoading}
           />
         </Center>
       </ScrollView>
